@@ -1,0 +1,9 @@
+%FILES%
+boot/
+boot/LICENCE.broadcom
+boot/bootcode.bin
+boot/fixup.dat
+boot/fixup_cd.dat
+boot/start.elf
+boot/start_cd.elf
+

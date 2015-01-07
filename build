@@ -1,0 +1,21 @@
+#!/usr/bin/python
+
+import os
+import logging
+import ConfigParser
+
+logging.basicConfig()
+log = logging.getLogger('build')
+
+log.info('Starting to build mypi SD images')
+
+# Start to read the config file
+
+config = ConfigParser.ConfigParser()
+try:
+    config.readfp(open('build_config.ini'))
+except IOError as e:
+    log.error('Failed to find build_config.ini')
+    raise e
+
+

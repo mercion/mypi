@@ -1,0 +1,24 @@
+  946  lsblk -l
+  947  fdisk /dev/sdd
+  948  sudo fdisk /dev/sdd
+  949  mkfs.vfat /dev/sdd1
+  950  sudo mkfs.vfat /dev/sdd1
+  951  mkdir boot
+  952  mount /dev/sdd1 boot
+  953  sudo mount /dev/sdd1 boot
+  954  mkfs.ext4 /dev/sdd2
+  955  sudo mkfs.ext4 /dev/sdd2
+  956  mkdir root
+  957  mount /dev/sdd2 root
+  958  sudo mount /dev/sdd2 root
+  959  ls
+  960  wget http://archlinuxarm.org/os/ArchLinuxARM-rpi-latest.tar.gz
+  961  bsdtar -xpf ArchLinuxARM-rpi-latest.tar.gz -C root
+  962  sudo apt-get install bsdtar
+  963  bsdtar -xpf ArchLinuxARM-rpi-latest.tar.gz -C root
+  964  sudo bsdtar -xpf ArchLinuxARM-rpi-latest.tar.gz -C ./root
+  965  sync
+  966  mv root/boot/* boot
+  967  sudo mv root/boot/* boot
+  968  umount boot root
+  969  sudo umount boot root
