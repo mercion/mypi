@@ -22,3 +22,7 @@
   967  sudo mv root/boot/* boot
   968  umount boot root
   969  sudo umount boot root
+
+
+Some Packman Tips
+sudo pacman -r rootfs --arch armv6h -S python2 --config /home/mercion/sandbox/mypi/rootfs/etc/pacman.conf -v --cachedir /tmp/foo --gpgdir rootfs/etc/pacman.d/gnupg -w --debug
