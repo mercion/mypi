@@ -105,6 +105,13 @@ class MypiBuilder(object):
             subprocess.check_call('parted {} set 1 {} on'.format(device, flag), shell=True, 
                 stdout=sys.stdout, stderr=sys.stderr)
 
+    def copy_files(self):
+        log.info('Copying all root files to rootpartitions')
+        subprocess.check_call('cp -r ./rootfs/* {}/'.format(self.rootdir), shell=True)
+
+        log.info('Copying all boot files to bootpartition')
+        subprocess.check_call('cp -r ./rootfs/boot/* {}/'.format(self.bootdir), shell=True)
+
     def unmount_all(self):
         for device in [self.rootdir, self.bootdir]:
             try:
@@ -121,7 +128,8 @@ class MypiBuilder(object):
 if __name__ == '__main__':
     builder = MypiBuilder('build_config.ini')
     builder.mount_devices()
-    builder.cleanup()
+    builder.copy_files()
+    #builder.cleanup()
         
         
         
