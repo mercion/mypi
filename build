@@ -9,7 +9,6 @@ import subprocess
 import ConfigParser
 import coloredlogs
 
-logging.basicConfig()
 log = logging.getLogger('build')
 coloredlogs.install(level=logging.DEBUG)
 
@@ -55,6 +54,16 @@ class MypiBuilder(object):
         self.mount_device(
             self.config.get('BuildDriveConfiguration', 'boot_device'),
             self.bootdir)
+
+        self.format_device(
+            self.config.get('BuildDriveConfiguration', 'root_device'),
+            'primary',
+            'ext4',
+            self.config.get('BuildDriveConfiguration', 'boot_device_size'),
+            [])
+        self.mount_device(
+            self.config.get('BuildDriveConfiguration', 'root_device'),
+            self.rootdir)
             
     def mount_device(self, device, location):
         log.debug('Attempting to mount device {} to {}'.format(
