@@ -1,21 +1,136 @@
 #!/usr/bin/python
 
 import os
+import sys
+import shutil
 import logging
+import tempfile
+import subprocess
 import ConfigParser
+import coloredlogs
 
-logging.basicConfig()
 log = logging.getLogger('build')
+coloredlogs.install(level=logging.DEBUG)
 
 log.info('Starting to build mypi SD images')
 
-# Start to read the config file
+class MypiBuilder(object):
+    def __init__(self, config_file_path):
+        self.config = ConfigParser.ConfigParser()
+        self.config.read('./build_config.ini')
+        print self.config
+        self.tempdir = tempfile.mkdtemp(prefix='mypi')
+        self.rootdir = os.path.join(self.tempdir, 'root')
+        if not os.path.exists(self.rootdir):
+            os.mkdir(self.rootdir)
+        self.bootdir = os.path.join(self.tempdir, 'boot')
+        if not os.path.exists(self.bootdir):
+            os.mkdir(self.bootdir)
+    
+    def precheck_devices(self, *devices):
+        """
+        Check that all *devices exisit and are not mounted and in
+        use
+        """
+        for device in devices:
+            if not os.path.exists(device):
+                log.error('The device {} does not exist'.format(device))
+                raise Exception('Device Does Not Exist')
 
-config = ConfigParser.ConfigParser()
-try:
-    config.readfp(open('build_config.ini'))
-except IOError as e:
-    log.error('Failed to find build_config.ini')
-    raise e
+            # Check if device is mounted
+            if device not in subprocess.check_output('mount'):
+                log.error('The device {} is already mounted!'.format(device))
+                raise Exception('Device already mounted.')
+        log.info('Device pre-check completed!')
 
+    def mount_devices(self):
+        "Mount all root and boot device into a temp location"
+        self.format_device(
+            self.config.get('BuildDriveConfiguration', 'boot_device'),
+            'primary',
+            'vfat',
+            self.config.get('BuildDriveConfiguration', 'boot_device_size'),
+            ['lba', 'boot'])
+        self.mount_device(
+            self.config.get('BuildDriveConfiguration', 'boot_device'),
+            self.bootdir)
+
+        self.format_device(
+            self.config.get('BuildDriveConfiguration', 'root_device'),
+            'primary',
+            'ext4',
+            self.config.get('BuildDriveConfiguration', 'boot_device_size'),
+            [])
+        self.mount_device(
+            self.config.get('BuildDriveConfiguration', 'root_device'),
+            self.rootdir)
+            
+    def mount_device(self, device, location):
+        log.debug('Attempting to mount device {} to {}'.format(
+            device, location))
+        subprocess.check_call('mount {}1 {}'.format(device, location), shell=True, 
+                              stdout=sys.stdout, stderr=sys.stderr)
+        log.info('Mounted device {} to {}'.format(device, location))
+
+    def format_device(self, device, partition_type, fstype, partition_size, flags):
+        log.debug('Attempting to format device {}'.format(device))
+        resp = subprocess.check_output('parted {} print -m'.format(device), shell=True,
+                                       stderr=sys.stderr)
+        partitions = resp.split('\n')[2:]
+        print partitions
+        for partition in partitions:
+            if not partition: continue
+            print partition
+            partition_number = partition.split(':')[0]
+            log.info('Deleting partition no {} from {}'.format(
+                partition_number, device))
+            subprocess.check_call('parted {} rm {}'.format(device, partition_number),
+                                    shell=True, stdout=sys.stdout, stderr=sys.stderr)
+
+        log.info('Creating a new partition on device {} of type {} upto {}'.format(
+            device, fstype, partition_size))
+        subprocess.check_call('parted {} mkpart {} 106  {}'.format(
+                device, partition_type, partition_size),
+            shell=True, stdout=sys.stdout, stderr=sys.stderr)
+
+        log.debug('Attempting to create a {} filesystem on device {}'.format(
+            fstype, device))
+        subprocess.check_call('mkfs.{} {}1'.format(fstype, device),
+                              shell=True, stdout=sys.stdout, stderr=sys.stderr)
+        log.info('Created a {} filesystem on device {}'.format(
+            fstype, device))
+
+        for flag in flags:
+            log.debug('Setting {} flag on {}'.format(flag, device))
+            subprocess.check_call('parted {} set 1 {} on'.format(device, flag), shell=True, 
+                stdout=sys.stdout, stderr=sys.stderr)
+
+    def copy_files(self):
+        log.info('Copying all root files to rootpartitions')
+        subprocess.check_call('cp -r ./rootfs/* {}/'.format(self.rootdir), shell=True)
+
+        log.info('Copying all boot files to bootpartition')
+        subprocess.check_call('cp -r ./rootfs/boot/* {}/'.format(self.bootdir), shell=True)
+
+    def unmount_all(self):
+        for device in [self.rootdir, self.bootdir]:
+            try:
+                subprocess.check_call('umount {}'.format(device), shell=True)
+                log.info('Un-mounted {}'.format(device))
+            except:
+                log.error('Failed to un-mount {}'.format(device))
+
+    def cleanup(self):
+        self.unmount_all()
+        shutil.rmtree(self.tempdir)
+                
+
+if __name__ == '__main__':
+    builder = MypiBuilder('build_config.ini')
+    builder.mount_devices()
+    builder.copy_files()
+    #builder.cleanup()
+        
+        
+        
 
