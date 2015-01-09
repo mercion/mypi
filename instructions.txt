@@ -1,4 +1,5 @@
-  946  lsblk -l
+  
+946  lsblk -l
   947  fdisk /dev/sdd
   948  sudo fdisk /dev/sdd
   949  mkfs.vfat /dev/sdd1

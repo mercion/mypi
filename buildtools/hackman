@@ -1,0 +1,69 @@
+#!/usr/bin/python2
+
+import os
+import sys
+import subprocess
+
+# Get config file location
+hackman_script =  os.path.abspath(__file__)
+buildtools_dir = os.path.dirname(hackman_script)
+
+ROOTFS = os.path.join(buildtools_dir, '../rootfs')
+CONFIG_TEMPLATE = os.path.join(buildtools_dir, 'pacman.conf.template')
+CACHE_DIR = os.path.join(buildtools_dir, '.cache')
+GPGDIR = os.path.join(ROOTFS, 'etc/pacman.d/gnupg')
+MIRROR_LIST = os.path.join(ROOTFS, 'etc/pacman.d/mirrorlist')
+CONFIG_FILE = os.path.join(CACHE_DIR, 'pacman.conf')
+
+ARCH = 'armv6h'
+EXTRA_PACMAN_ARGS = ['--debug', '-v', '--color', 'always', '--noconfirm']
+
+if not os.path.exists(CACHE_DIR):
+    os.mkdir(CACHE_DIR)
+
+for path in [ROOTFS, CONFIG_TEMPLATE, CACHE_DIR, GPGDIR]:
+    if not os.path.exists(path):
+        raise Exception('Path {} does not exist'.format(path))
+
+
+
+#sudo pacman -r rootfs --arch armv6h -S python2 --config /home/mercion/sandbox/mypi/rootfs/etc/pacman.conf -v --cachedir /tmp/foo --gpgdir rootfs/etc/pacman.d/gnupg -w --debug
+
+description = '''
+    hackman is a simple wrapper arount pacman that will allow you to install
+    packages on an disk/filesystem that contains an arch installation. 
+
+    This is very usefull if you are unable to chroot into the target filesystem.
+
+    Usage is the same as with pacman. For cmdline opions etc look at the 
+    manpages for pacman `man pacman` or visit the arch wiki
+    '''
+
+args = sys.argv
+
+
+# Set the mirror list path in the config template and generate a config file
+with open(CONFIG_TEMPLATE, 'r') as f:
+    template= f.read()
+    template = template.format(mirrorlist=MIRROR_LIST)
+    with open(CONFIG_FILE, 'w') as cfg:
+        cfg.write(template)
+
+if args[1] in ['help', '-h', '--help']:
+    sys.exit(0)
+else:
+    args = args[1:]
+
+cmd = [
+    'pacman',
+    '--arch', ARCH,
+    '-r', ROOTFS,
+    '--config', CONFIG_FILE,
+    '--gpgdir', GPGDIR,
+    '--cachedir', CACHE_DIR] + EXTRA_PACMAN_ARGS + args
+
+cmd = ' '.join(cmd)
+print cmd
+
+subprocess.check_call(cmd, shell=True, stdout=sys.stdout, stderr=sys.stderr)
+                        
