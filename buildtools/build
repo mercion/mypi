@@ -6,7 +6,7 @@ import shutil
 import logging
 import tempfile
 import subprocess
-import ConfigParser
+from configparser import ConfigParser
 import coloredlogs
 
 log = logging.getLogger('build')
@@ -16,9 +16,9 @@ log.info('Starting to build mypi SD images')
 
 class MypiBuilder(object):
     def __init__(self, config_file_path):
-        self.config = ConfigParser.ConfigParser()
+        self.config = ConfigParser()
         self.config.read('./build_config.ini')
-        print self.config
+        print(self.config)
         self.tempdir = tempfile.mkdtemp(prefix='mypi')
         self.rootdir = os.path.join(self.tempdir, 'root')
         if not os.path.exists(self.rootdir):
@@ -75,12 +75,13 @@ class MypiBuilder(object):
     def format_device(self, device, partition_type, fstype, partition_size, flags):
         log.debug('Attempting to format device {}'.format(device))
         resp = subprocess.check_output('parted {} print -m'.format(device), shell=True,
-                                       stderr=sys.stderr)
+                                      stderr=sys.stderr).decode("utf-8")
+        print(resp)
         partitions = resp.split('\n')[2:]
-        print partitions
+        print(partitions)
         for partition in partitions:
             if not partition: continue
-            print partition
+            print(partition)
             partition_number = partition.split(':')[0]
             log.info('Deleting partition no {} from {}'.format(
                 partition_number, device))
@@ -107,10 +108,10 @@ class MypiBuilder(object):
 
     def copy_files(self):
         log.info('Copying all root files to rootpartitions')
-        subprocess.check_call('cp -r ./rootfs/* {}/'.format(self.rootdir), shell=True)
+        subprocess.check_call('cp -r ../rootfs/* {}/'.format(self.rootdir), shell=True)
 
         log.info('Copying all boot files to bootpartition')
-        subprocess.check_call('cp -r ./rootfs/boot/* {}/'.format(self.bootdir), shell=True)
+        subprocess.check_call('cp -r ../rootfs/boot/* {}/'.format(self.bootdir), shell=True)
 
     def unmount_all(self):
         for device in [self.rootdir, self.bootdir]:
@@ -129,7 +130,7 @@ if __name__ == '__main__':
     builder = MypiBuilder('build_config.ini')
     builder.mount_devices()
     builder.copy_files()
-    #builder.cleanup()
+    builder.cleanup()
         
         
         
